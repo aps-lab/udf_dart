@@ -150,15 +150,13 @@ UdfTypeIdentifier typeId(DigestAlgorithm digestAlgorithm, int compression) {
       }
       break;
     default:
-      throw ArgumentError(
-          'Unexpected algorithm: ' + digestAlgorithm.toString());
+      throw ArgumentError('Unexpected algorithm: ' + digestAlgorithm.toString());
   }
 }
 
 UdfTypeIdentifier idFromValue(int value) {
   return UdfTypeIdentifier.values.firstWhere((e) => idCode(e) == value,
-      orElse: () => throw ArgumentError(
-          'Unexpected UdfTypeIdentifier code: ' + value.toString()));
+      orElse: (() => throw ArgumentError('Unexpected UdfTypeIdentifier code: ' + value.toString())) as UdfTypeIdentifier Function()?);
 }
 
 class UDF {
@@ -184,12 +182,8 @@ class UDF {
   /// [contentType] MIME media type. See
   /// http://www.iana.org/assignments/media-types/media-types.xhtml for list.
   /// SHA2-512 (UTF8(ContentType) + ":" + SHA2512(Data))
-  static List<int> udfBuffer(
-      final List<int> dataDigest, final String contentType) {
-    return sha512
-        .newInstance()
-        .convert(udfDataBuffer(dataDigest, contentType))
-        .bytes;
+  static List<int> udfBuffer(final List<int> dataDigest, final String contentType) {
+    return sha512.convert(udfDataBuffer(dataDigest, contentType)).bytes;
   }
 
   /// Calculate a UDF fingerprint from the content data with specified precision.
@@ -201,22 +195,18 @@ class UDF {
   /// [key] Optional key used to create a keyed fingerprint.
   /// Returns The binary UDF fingerprint.
   static List<int> dataToUDFBinary(List<int> data, String contentType,
-      {int precision = 0,
-      DigestAlgorithm digestAlgorithm = DigestAlgorithm.SHA2_512,
-      String key}) {
+      {int precision = 0, DigestAlgorithm digestAlgorithm = DigestAlgorithm.SHA2_512, String? key}) {
     switch (digestAlgorithm) {
       case DigestAlgorithm.SHA2_512:
         // H(<Data>)
-        var sha512Digest = sha512.newInstance().convert(data).bytes;
+        var sha512Digest = sha512.convert(data).bytes;
         // H(<Content-ID> + ':' + H(<Data>))
-        return digestToUDFBinary(sha512Digest, contentType,
-            precision: precision, digestAlgorithm: digestAlgorithm, key: key);
+        return digestToUDFBinary(sha512Digest, contentType, precision: precision, digestAlgorithm: digestAlgorithm, key: key);
         break;
       case DigestAlgorithm.SHA3_512:
         throw ArgumentError('SHA3_512 not implemented');
       default:
-        throw ArgumentError(
-            'Unexpected algorithm: ' + digestAlgorithm.toString());
+        throw ArgumentError('Unexpected algorithm: ' + digestAlgorithm.toString());
     }
   }
 
@@ -229,11 +219,8 @@ class UDF {
   /// the hash value.
   /// [key] Optional key used to create a keyed fingerprint.
   /// Returns the binary UDF fingerprint
-  static List<int> digestToUDFBinary(
-      final List<int> digest, final String contentType,
-      {int precision = 0,
-      DigestAlgorithm digestAlgorithm = DigestAlgorithm.SHA2_512,
-      String key}) {
+  static List<int> digestToUDFBinary(final List<int> digest, final String contentType,
+      {int precision = 0, DigestAlgorithm digestAlgorithm = DigestAlgorithm.SHA2_512, String? key}) {
     switch (digestAlgorithm) {
       case DigestAlgorithm.SHA2_512:
         // H(<Content-ID> + ':' + H(<Data>))
@@ -242,8 +229,7 @@ class UDF {
       case DigestAlgorithm.SHA3_512:
         throw ArgumentError('SHA3_512 not implemented');
       default:
-        throw ArgumentError(
-            'Unexpected algorithm: ' + digestAlgorithm.toString());
+        throw ArgumentError('Unexpected algorithm: ' + digestAlgorithm.toString());
     }
   }
 
@@ -256,9 +242,7 @@ class UDF {
   /// [key] Key used to create a keyed fingerprint.
   /// @return The binary UDF fingerprint.
   static List<int> bufferDigestToUDF(List<int> digest,
-      {int precision = 0,
-      DigestAlgorithm digestAlgorithm = DigestAlgorithm.SHA2_512,
-      String key}) {
+      {int precision = 0, DigestAlgorithm digestAlgorithm = DigestAlgorithm.SHA2_512, String? key}) {
     if (key == null) {
       // Data UDF
       var typeIdentifier = typeId(digestAlgorithm, getCompression(digest));
@@ -268,14 +252,11 @@ class UDF {
       switch (digestAlgorithm) {
         case DigestAlgorithm.SHA2_512:
           var udfData = Hmac(sha512, utf8.encode(key)).convert(digest).bytes;
-          return typeBDSToBinary(
-              UdfTypeIdentifier.Authenticator_HMAC_SHA_2_512, udfData,
-              precision: precision);
+          return typeBDSToBinary(UdfTypeIdentifier.Authenticator_HMAC_SHA_2_512, udfData, precision: precision);
         case DigestAlgorithm.SHA3_512:
           throw ArgumentError('SHA3_512 not implemented');
         default:
-          throw ArgumentError(
-              'Unexpected algorithm: ' + digestAlgorithm.toString());
+          throw ArgumentError('Unexpected algorithm: ' + digestAlgorithm.toString());
       }
     }
   }
@@ -289,12 +270,10 @@ class UDF {
   /// of the property [defaultBits] is used.
   /// [offset] Offset in [source]
   /// Retuns the resulting binary buffer.
-  static List<int> typeBDSToBinary(UdfTypeIdentifier typeID, List<int> source,
-      {int precision = defaultBits, int offset = 0}) {
+  static List<int> typeBDSToBinary(UdfTypeIdentifier typeID, List<int> source, {int precision = defaultBits, int offset = 0}) {
     // Constraints the number of bits to an integer multiple of 20 bits between
     // DefaultBits and MaximumBits.
-    precision =
-        min((precision <= 0 ? defaultBits : precision), source.length * 8);
+    precision = min((precision <= 0 ? defaultBits : precision), source.length * 8);
 
     // Calculate the number of bytes
     var bytes = ((precision + 7) ~/ 8);
@@ -346,9 +325,8 @@ class UDF {
   /// [charsPerBlock] number of chars to be printed per block
   /// [delimiter] delimiter character
   /// [precision] the presision to be printed. Multiple of 5bits * [charsPerBlock]
-  static String printBase32(List<int> udfBytes,
-      {int charsPerBlock = 5, String delimiter = '-', int precision = -1}) {
-    var encoded = base32.encode(udfBytes);
+  static String printBase32(List<int> udfBytes, {int charsPerBlock = 5, String delimiter = '-', int precision = -1}) {
+    var encoded = base32.encode(udfBytes as Uint8List);
     var endIndex = encoded.indexOf('=');
     var base32String = endIndex > 0 ? encoded.substring(0, endIndex) : encoded;
     var blocks = chunk(base32String, charsPerBlock);
@@ -370,8 +348,7 @@ class UDF {
   static List<String> chunk(String string, int charsPerBlock) {
     var chunks = <String>[];
     for (var start = 0; start < string.length; start += charsPerBlock) {
-      chunks.add(
-          string.substring(start, min(string.length, start + charsPerBlock)));
+      chunks.add(string.substring(start, min(string.length, start + charsPerBlock)));
     }
     return chunks;
   }
@@ -381,8 +358,7 @@ class UDF {
   /// [digest] the data digest H(<Data>)
   /// [contentType] the content type <Content-ID>
   /// return <Content-ID> + ':' + H(<Data>)
-  static List<int> udfDataBuffer(
-      final List<int> digest, final String contentType) {
+  static List<int> udfDataBuffer(final List<int> digest, final String contentType) {
     var resultBuffer = List<int>.from(utf8.encode(contentType));
     resultBuffer.add(tagSeparatorByte);
     resultBuffer.addAll(digest);
@@ -394,7 +370,7 @@ class UDF {
     return List<int>.generate((bits - 8) ~/ 8, (i) => random.nextInt(256));
   }
 
-  static List<int> nonce({List<int> data, int bits}) {
+  static List<int> nonce({List<int>? data, int? bits}) {
     bits ??= defaultBits;
     data ??= nonceData(bits);
     return typeBDSToBinary(UdfTypeIdentifier.Nonce, data, precision: bits);
